@@ -3,6 +3,7 @@ import type { CouchDBConnection, BucketSyncSetting, P2PConnectionInfo } from "./
 export type RemoteConfigurationResult =
     | { type: "couchdb"; settings: CouchDBConnection }
     | { type: "s3"; settings: BucketSyncSetting }
+    | { type: "supabase"; settings: BucketSyncSetting }
     | { type: "p2p"; settings: P2PConnectionInfo }
     | { type: "webdav"; settings: any }; // TODO: Define WebDAV settings
 
@@ -60,6 +61,11 @@ export class ConnectionStringParser {
                     type: "s3",
                     settings: this.parseS3(url),
                 };
+            case "supabase":
+                return {
+                    type: "supabase",
+                    settings: this.parseS3(url),
+                };
             default:
                 throw new Error(`Unsupported protocol: sls+${subscheme}`);
         }
@@ -74,10 +80,12 @@ export class ConnectionStringParser {
                 return this.serializeCouchDB(config.settings);
             case "s3":
                 return this.serializeS3(config.settings);
+            case "supabase":
+                return this.serializeSupabase(config.settings);
             case "p2p":
                 return this.serializeP2P(config.settings);
             default:
-                throw new Error(`Unsupported type: ${config.type}`);
+                throw new Error(`Unsupported type: ${(config as any).type}`);
         }
     }
 
@@ -148,6 +156,18 @@ export class ConnectionStringParser {
         if (settings.useCustomRequestHandler) newUrl.searchParams.set("useProxy", "true");
         if (!settings.forcePathStyle) newUrl.searchParams.set("pathStyle", "false");
         return withSlsScheme(newUrl, "s3");
+    }
+
+    private static serializeSupabase(settings: BucketSyncSetting): string {
+        const url = new URL(settings.endpoint);
+        const newUrl = new URL(`${PROXY_SCHEME}://${url.host}`);
+        newUrl.username = encodeURIComponent(settings.accessKey);
+        newUrl.password = encodeURIComponent(settings.secretKey);
+        newUrl.searchParams.set("endpoint", settings.endpoint);
+        newUrl.searchParams.set("bucket", settings.bucket);
+        newUrl.searchParams.set("region", settings.region || "auto");
+        if (settings.bucketPrefix) newUrl.searchParams.set("prefix", settings.bucketPrefix);
+        return withSlsScheme(newUrl, "supabase");
     }
 
     private static parseP2P(url: URL): P2PConnectionInfo {
