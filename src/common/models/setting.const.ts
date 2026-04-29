@@ -7,11 +7,12 @@ export const RemoteTypes = {
     REMOTE_COUCHDB: "",
     REMOTE_MINIO: "MINIO",
     REMOTE_P2P: "ONLY_P2P",
+    REMOTE_SUPABASE: "SUPABASE",
 } as const;
 export const REMOTE_COUCHDB = RemoteTypes.REMOTE_COUCHDB;
 export const REMOTE_MINIO = RemoteTypes.REMOTE_MINIO;
-//
 export const REMOTE_P2P = RemoteTypes.REMOTE_P2P;
+export const REMOTE_SUPABASE = RemoteTypes.REMOTE_SUPABASE;
 
 export const E2EEAlgorithmNames = {
     "": "V1: Legacy",

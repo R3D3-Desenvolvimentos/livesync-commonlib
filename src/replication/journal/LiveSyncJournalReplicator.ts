@@ -14,6 +14,7 @@ import {
 import { Logger } from "../../common/logger.ts";
 
 import { JournalSyncMinio } from "./objectstore/JournalSyncMinio.ts";
+import type { JournalSyncAbstract } from "./JournalSyncAbstract.ts";
 
 import { LiveSyncAbstractReplicator, type RemoteDBStatus } from "../LiveSyncAbstractReplicator.ts";
 import { ensureRemoteIsCompatible, type ENSURE_DB_RESULT } from "../../pouchdb/LiveSyncDBFunctions.ts";
@@ -45,7 +46,7 @@ export class LiveSyncJournalReplicator extends LiveSyncAbstractReplicator {
     get simpleStore() {
         return this.env.services.keyValueDB.simpleStore as SimpleStore<CheckPointInfo>;
     }
-    _client!: JournalSyncMinio;
+    _client!: JournalSyncAbstract;
 
     override async getReplicationPBKDF2Salt(
         setting: RemoteDBSettings,
@@ -54,14 +55,16 @@ export class LiveSyncJournalReplicator extends LiveSyncAbstractReplicator {
         return await this.client.getReplicationPBKDF2Salt(refresh);
     }
 
+    protected createClient(): JournalSyncAbstract {
+        return new JournalSyncMinio(this.currentSettings, this.simpleStore, this.env);
+    }
+
     setupJournalSyncClient() {
         const settings = this.currentSettings;
         if (this._client) {
             this._client.applyNewConfig(settings, this.simpleStore, this.env);
-            // NO OP.
-            // this._client.requestStop();
         } else {
-            this._client = new JournalSyncMinio(settings, this.simpleStore, this.env);
+            this._client = this.createClient();
         }
         return this._client;
     }
